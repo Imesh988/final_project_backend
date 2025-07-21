@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const EmployeesRouter = require('./routers/EmployeesRouter');
+const CustomerRouter = require('./routers/CustomerRouter');
 
 connectDB();
 
@@ -18,4 +19,5 @@ app.listen(process.env.SERVER_PORT, () => {
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-app.use('/api/e1/employee', EmployeesRouter);
+app.use('/api/employee', EmployeesRouter);
+app.use('/api/customer', CustomerRouter);

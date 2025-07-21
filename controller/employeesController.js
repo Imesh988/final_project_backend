@@ -1,30 +1,62 @@
 const {text, json} = require('body-parser');
 const Employees = require('../model/Employees');
 
-const create = async (req,res) => {
+const create = async (req, res) => {
     try {
-        let employee = new Employees({
+        const requiredFields = ['nic', 'username', 'password', 'full_name', 'tp', 'whathappNo', 'city'];
+        const missingFields = requiredFields.filter(field => !req.body[field]);
+        
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                msg: 'Missing required fields',
+                missingFields
+            });
+        }
+
+        const employee = new Employees({
             nic: req.body.nic,
             username: req.body.username,
+            password: req.body.password,
             full_name: req.body.full_name,
             tp: req.body.tp,
             whathappNo: req.body.whathappNo,
             city: req.body.city
+        });
 
-        })
-        employee.save()
-        .then((result)=>{res.status(200).json({'msg':'Employee created successfully'})})
-        .catch((error)=>{res.status(500).json({'msg':'Error creating employee', error})});
+        const savedEmployee = await employee.save();
+        res.status(201).json({
+            msg: 'Employee created successfully',
+            employee: savedEmployee
+        });
     } catch (error) {
-        res.status(500).json({'msg': error});
+        console.error('Error creating employee:', error);
         
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                msg: 'Validation erro',
+                errors: Object.values(error.errors).map(err => err.message)
+            });
+        }
+        
+        if (error.code === 11000) {
+            return res.status(400).json({
+                msg: 'Duplicate key error',
+                field: Object.keys(error.keyPattern)[0],
+                value: error.keyValue[Object.keys(error.keyPattern)[0]]
+            });
+        }
+        
+        res.status(500).json({
+            msg: 'Error creating employee',
+            error: error.message 
+        });
     }
-}
+};
 
 const getAllEmployees = async (req,res) => {
     try {
         const employees = await Employees.find();
-        res.status(200).json({'msg': 'Employyess Get All !!', employees});
+        res.status(200).json({'msg': 'Employees Get All !!', employees});
     } catch (error) {
         res.status(500).json({'msg': error});
     }
@@ -36,6 +68,7 @@ const findOneById = async (req,res) => {
         Employees.findByIdAndUpdate(employee_id,{
             nic: req.body.nic,
             username: req.body.username,
+            password: req.body.password,
             full_name: req.body.full_name,
             tp: req.body.tp,
             whathappNo: req.body.whathappNo,
