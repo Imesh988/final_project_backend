@@ -1,27 +1,59 @@
 const { text, json } = require('body-parser');
 const Customer = require('../model/Customer');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const create = async (req, res) => {
-
     try {
-        let customer = new Customer({
+        const requiredFields = ['nic', 'username', 'full_name', 'password', 'tp', 'whathappNo', 'city'];
+        const missingFields = requiredFields.filter(field => !req.body[field]);
+        
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                msg: 'Missing required fields',
+                missingFields
+            });
+        }
+
+        const customer = new Customer({
             nic: req.body.nic,
             username: req.body.username,
             full_name: req.body.full_name,
-             password: req.body.password,
+            password: req.body.password,
             tp: req.body.tp,
             whathappNo: req.body.whathappNo,
             city: req.body.city
+        });
 
-        })
-        customer.save()
-            .then((result) => { res.status(200).json({ 'msg': 'Customer created successfully' }) })
-            .catch((error) => { res.status(500).json({ 'msg': 'Error creating Customer', error }) });
+        const savedCustomer = await customer.save();
+        res.status(201).json({
+            msg: 'Customer created successfully',
+            employee: savedCustomer
+        });
     } catch (error) {
-        res.status(500).json({ 'msg': error });
-
+        console.error('Error creating customer:', error);
+        
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                msg: 'Validation erro',
+                errors: Object.values(error.errors).map(err => err.message)
+            });
+        }
+        
+        if (error.code === 11000) {
+            return res.status(400).json({
+                msg: 'Duplicate key error',
+                field: Object.keys(error.keyPattern)[0],
+                value: error.keyValue[Object.keys(error.keyPattern)[0]]
+            });
+        }
+        
+        res.status(500).json({
+            msg: 'Error creating customer',
+            error: error.message 
+        });
     }
-}
+};
 
 const getAllCustomers = async (req,res) => {
     try {
@@ -65,4 +97,42 @@ const deleteOneById = (req, res) => {
     }
 }
 
-module.exports = { create, getAllCustomers, findOneById, deleteOneById };
+const login = async (req,res) => {
+    const {username, password} = req.body;
+
+    if(!username || !password){
+        return res.status(400).json({'msg': 'Username and password are required'});
+    }
+
+    try {
+        const customer = await Customer.findOne({username});
+
+        if(!customer){
+            return res.status(400).json({ 'msg': 'User not found' });
+        }
+
+        const isMatch = await bcrypt.compare(password, customer.password);
+
+        if(!isMatch){
+            return res.status(400).json({ 'msg': 'Invalid credentials' });
+        }
+
+        const token = jwt.sign({id: customer._id}, process.env.JWT_SECRET || 'default_secret', {
+            expiresIn: '2h'
+        });
+
+        res.status(200).json({
+            msg: 'Login successful',
+            token,
+            user: { id: customer._id, username: customer.username }
+        });
+
+    } catch (error) {
+        console.log('Login error ', error);
+        res.status(500).json({'error': 'Server error during login'});
+        
+        
+    }
+}
+
+module.exports = { create, getAllCustomers, findOneById, deleteOneById, login };

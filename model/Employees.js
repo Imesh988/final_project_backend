@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
+
 const EmployeesSchema = new mongoose.Schema(
     {
         nic: { type: String, required: true, unique: true },

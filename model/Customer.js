@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 const CustomerSchema = new mongoose.Schema(
     {
@@ -10,6 +11,19 @@ const CustomerSchema = new mongoose.Schema(
         whathappNo: {type: Number, required: true},
         city: {type: String, required: true},
     }
-)
+);
+
+CustomerSchema.pre('save', async function (next) {
+    try {
+        if (this.isModified('password')) {
+            this.password = await bcrypt.hash(this.password, 10);
+        }
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
+
 
 module.exports = mongoose.model('Customer', CustomerSchema);

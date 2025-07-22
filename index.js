@@ -8,6 +8,7 @@ require('dotenv').config();
 
 const EmployeesRouter = require('./routers/EmployeesRouter');
 const CustomerRouter = require('./routers/CustomerRouter');
+const LocationRouter = require('./routers/LocationRouter');
 
 connectDB();
 
@@ -21,3 +22,4 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use('/api/employee', EmployeesRouter);
 app.use('/api/customer', CustomerRouter);
+app.use('/api/location', LocationRouter);
